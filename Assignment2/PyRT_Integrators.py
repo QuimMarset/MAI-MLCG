@@ -147,9 +147,46 @@ class CMCIntegrator(Integrator):  # Classic Monte Carlo Integrator
         filename_mc = filename_ + '_MC_' + str(n) + '_samples' + experiment_name
         super().__init__(filename_mc)
         self.n_samples = n
+        self.pdf = UniformPDF()
 
     def compute_color(self, ray):
-        pass
+        color = self.scene.env_map.getValue(ray.d)
+        
+        hit_data = self.scene.closest_hit(ray)
+        point = hit_data.hit_point
+        
+        if hit_data.has_hit:
+            normal = hit_data.normal
+            object_index = hit_data.primitive_index
+            object_hit = self.scene.object_list[object_index]
+
+            sample_dir, sample_prob = sample_set_hemisphere(self.n_samples, self.pdf)
+
+            illum_integral_estimate = BLACK
+
+            for direction, prob in zip(sample_dir, sample_prob):
+                w_j_rotated = center_around_normal(direction, normal)
+
+                ray2 = Ray(point, w_j_rotated)
+
+                hit_2_data = self.scene.closest_hit(ray2)
+
+                incidence_radiance = BLACK
+
+                if hit_2_data.has_hit:
+                    object_index_2 = hit_2_data.primitive_index
+                    object_hit_2 = self.scene.object_list[object_index_2]
+                    incidence_radiance = object_hit_2.emission
+                elif self.scene.env_map:
+                    incidence_radiance = self.scene.env_map.getValue(w_j_rotated)
+
+                integrand_sample = incidence_radiance.multiply(object_hit.BRDF.get_value(w_j_rotated, Vector3D(0, 0, 0), normal)) * Dot(w_j_rotated, normal)
+                illum_integral_estimate += integrand_sample/prob
+
+            illum_integral_estimate /= self.n_samples
+            color = illum_integral_estimate
+
+        return color
 
 
 class BayesianMonteCarloIntegrator(Integrator):
