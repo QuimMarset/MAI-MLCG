@@ -180,7 +180,8 @@ class CMCIntegrator(Integrator):  # Classic Monte Carlo Integrator
                 elif self.scene.env_map:
                     incidence_radiance = self.scene.env_map.getValue(w_j_rotated)
 
-                integrand_sample = incidence_radiance.multiply(object_hit.BRDF.get_value(w_j_rotated, Vector3D(0, 0, 0), normal)) * Dot(w_j_rotated, normal)
+                integrand_sample = incidence_radiance.multiply(object_hit.BRDF.get_value(w_j_rotated, Vector3D(0, 0, 0), normal)) \
+                    * Dot(w_j_rotated, normal)
                 illum_integral_estimate += integrand_sample/prob
 
             illum_integral_estimate /= self.n_samples

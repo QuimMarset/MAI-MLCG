@@ -77,10 +77,10 @@ print('Ground truth: ' + str(ground_truth))
 # Experimental set-up #
 # ################### #
 ns_min = 20  # minimum number of samples (ns) used for the Monte Carlo estimate
-ns_max = 201  # maximum number of samples (ns) used for the Monte Carlo estimate
+ns_max = 1001  # maximum number of samples (ns) used for the Monte Carlo estimate
 ns_step = 20  # step for the number of samples
 ns_vector = np.arange(start=ns_min, stop=ns_max, step=ns_step)  # the number of samples to use per estimate
-n_estimates = 40000  # the number of estimates to perform for each value in ns_vector
+n_estimates = 100  # the number of estimates to perform for each value in ns_vector
 n_samples_count = len(ns_vector)
 
 # Initialize a matrix of estimate error at zero
@@ -99,8 +99,8 @@ for k, ns in enumerate(ns_vector):
     avg_estimates = 0
 
     for _ in range(n_estimates):
-        samples_pos, samples_prob = sample_set_hemisphere(ns, uniform_pdf)
-        samples_value = collect_samples(integrand, samples_pos) 
+        samples_dir, samples_prob = sample_set_hemisphere(ns, uniform_pdf)
+        samples_value = collect_samples(integrand, samples_dir) 
 
         estimate = compute_estimate_cmc(samples_prob, samples_value)
         
