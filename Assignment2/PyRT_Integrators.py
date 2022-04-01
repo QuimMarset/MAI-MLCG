@@ -37,8 +37,14 @@ class Integrator(ABC):
         print(cam.width, cam.height)
         for x in range(0, cam.width):
             for y in range(0, cam.height):
+                
+                # Assignment 1.1
+                # pixel = RGBColor(x/cam.width, y/cam.height, 0)
+
+                # Assignment 1.2
                 ray = Ray(direction=cam.get_direction(x, y))
-                pixel = self.compute_color(ray) #RGBColor(x/cam.width, y/cam.height, 0)
+                pixel = self.compute_color(ray)
+                
                 self.scene.set_pixel(pixel, x, y)  # save pixel to pixel array
             progress = (x / cam.width) * 100
             print('\r\tProgress: ' + str(progress) + '%', end='')
@@ -64,9 +70,9 @@ class IntersectionIntegrator(Integrator):
     def compute_color(self, ray):
         # ASSIGNMENT 1.2: PUT YOUR CODE HERE
         if self.scene.any_hit(ray):
-            return RGBColor(255, 0, 0)
+            return RED
         else:
-            return RGBColor(0, 0, 0)
+            return BLACK
 
 
 class DepthIntegrator(Integrator):
@@ -78,10 +84,10 @@ class DepthIntegrator(Integrator):
     def compute_color(self, ray):
         # ASSIGNMENT 1.3: PUT YOUR CODE HERE
         hit_data = self.scene.closest_hit(ray)
-        color = RGBColor(0, 0, 0)
+        color = BLACK
         if hit_data.has_hit:
             hit_distance = hit_data.hit_distance
-            color_comp = min(1 - (hit_distance/self.max_depth), 1)
+            color_comp = max(1 - (hit_distance/self.max_depth), 0)
             color = RGBColor(color_comp, color_comp, color_comp)
         return color
 
@@ -94,7 +100,7 @@ class NormalIntegrator(Integrator):
     def compute_color(self, ray):
         # ASSIGNMENT 1.3: PUT YOUR CODE HERE
         hit_data = self.scene.closest_hit(ray)
-        color = RGBColor(0, 0, 0)
+        color = BLACK
         if hit_data.has_hit:
             normal = hit_data.normal
             color = (normal + Vector3D(1, 1, 1))/2
@@ -109,7 +115,7 @@ class PhongIntegrator(Integrator):
 
     def compute_color(self, ray):
         # ASSIGNMENT 1.4: PUT YOUR CODE HERE
-        color = RGBColor(0, 0, 0)
+        color = BLACK
         
         hit_data = self.scene.closest_hit(ray)
         
@@ -134,7 +140,8 @@ class PhongIntegrator(Integrator):
                 if self.scene.any_hit(ray2):
                     continue
 
-                color += primitive.BRDF.get_value(light_vector, 0, normal).multiply(intensity/(distance**2))
+                cam_ray_unit_vector = ray.d * (-1) / hit_data.hit_distance
+                color += primitive.BRDF.get_value(light_vector, cam_ray_unit_vector, normal).multiply(intensity / (distance**2))
 
             color += self.scene.i_a.multiply(primitive.BRDF.kd)
 
@@ -150,15 +157,14 @@ class CMCIntegrator(Integrator):  # Classic Monte Carlo Integrator
         self.pdf = UniformPDF()
 
     def compute_color(self, ray):
-        color = self.scene.env_map.getValue(ray.d)
+        color = BLACK
         
         hit_data = self.scene.closest_hit(ray)
         point = hit_data.hit_point
         
         if hit_data.has_hit:
             normal = hit_data.normal
-            object_index = hit_data.primitive_index
-            object_hit = self.scene.object_list[object_index]
+            object_hit = self.scene.object_list[hit_data.primitive_index]
 
             sample_dir, sample_prob = sample_set_hemisphere(self.n_samples, self.pdf)
 
@@ -168,24 +174,22 @@ class CMCIntegrator(Integrator):  # Classic Monte Carlo Integrator
                 w_j_rotated = center_around_normal(direction, normal)
 
                 ray2 = Ray(point, w_j_rotated)
-
                 hit_2_data = self.scene.closest_hit(ray2)
 
-                incidence_radiance = BLACK
-
                 if hit_2_data.has_hit:
-                    object_index_2 = hit_2_data.primitive_index
-                    object_hit_2 = self.scene.object_list[object_index_2]
+                    object_hit_2 = self.scene.object_list[hit_2_data.primitive_index]
                     incidence_radiance = object_hit_2.emission
-                elif self.scene.env_map:
+                else:
                     incidence_radiance = self.scene.env_map.getValue(w_j_rotated)
 
-                integrand_sample = incidence_radiance.multiply(object_hit.BRDF.get_value(w_j_rotated, Vector3D(0, 0, 0), normal)) \
-                    * Dot(w_j_rotated, normal)
+                brdf_value = object_hit.BRDF.get_value(w_j_rotated, Vector3D(0, 0, 0), normal)
+                integrand_sample = incidence_radiance.multiply(brdf_value) * Dot(w_j_rotated, normal)
                 illum_integral_estimate += integrand_sample/prob
 
-            illum_integral_estimate /= self.n_samples
-            color = illum_integral_estimate
+            color = illum_integral_estimate/self.n_samples
+
+        else:
+            color = self.scene.env_map.getValue(ray.d)
 
         return color
 

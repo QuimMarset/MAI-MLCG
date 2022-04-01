@@ -77,10 +77,10 @@ print('Ground truth: ' + str(ground_truth))
 # Experimental set-up #
 # ################### #
 ns_min = 20  # minimum number of samples (ns) used for the Monte Carlo estimate
-ns_max = 1001  # maximum number of samples (ns) used for the Monte Carlo estimate
+ns_max = 201  # maximum number of samples (ns) used for the Monte Carlo estimate
 ns_step = 20  # step for the number of samples
 ns_vector = np.arange(start=ns_min, stop=ns_max, step=ns_step)  # the number of samples to use per estimate
-n_estimates = 100  # the number of estimates to perform for each value in ns_vector
+n_estimates = 1000  # the number of estimates to perform for each value in ns_vector
 n_samples_count = len(ns_vector)
 
 # Initialize a matrix of estimate error at zero
@@ -96,21 +96,17 @@ for k, ns in enumerate(ns_vector):
 
     print(f'Computing estimates using {ns} samples')
 
-    avg_estimates = 0
+    avg_abs_error = 0
 
     for _ in range(n_estimates):
         samples_dir, samples_prob = sample_set_hemisphere(ns, uniform_pdf)
-        samples_value = collect_samples(integrand, samples_dir) 
+        integrand_samples = collect_samples(integrand, samples_dir)
+        integral_estimate = compute_estimate_cmc(samples_prob, integrand_samples)
+        abs_error_estimate = abs(ground_truth - integral_estimate)
+        avg_abs_error += abs_error_estimate
 
-        estimate = compute_estimate_cmc(samples_prob, samples_value)
-        
-        avg_estimates += estimate
-
-    avg_estimates /= n_estimates
-
-    abs_error = abs(ground_truth - avg_estimates)
-
-    results[k, 0] = abs_error
+    avg_abs_error /= n_estimates
+    results[k, 0] = avg_abs_error
 
 
 # ################################################################################################# #
