@@ -1,8 +1,5 @@
-from ctypes.wintypes import RGB
+from GaussianProcess import *
 from PyRT_Common import *
-from random import randint
-
-from PyRT_Core import Lambertian
 
 
 # -------------------------------------------------Integrator Classes
@@ -194,12 +191,62 @@ class CMCIntegrator(Integrator):  # Classic Monte Carlo Integrator
         return color
 
 
+def create_gaussian_process(num_samples, pdf):
+    gaussian_process = GP(SobolevCov(), 1)
+    samples_pos, _ = sample_set_hemisphere(num_samples, pdf)
+    gaussian_process.add_sample_pos(samples_pos)
+    return gaussian_process
+
+
 class BayesianMonteCarloIntegrator(Integrator):
-    def __init__(self, n, myGP, filename_, experiment_name=''):
+    def __init__(self, n, filename_, num_gp=10, experiment_name=''):
         filename_bmc = filename_ + '_BMC_' + str(n) + '_samples' + experiment_name
         super().__init__(filename_bmc)
         self.n_samples = n
-        self.myGP = myGP
+        self.pdf = UniformPDF()
+        self.myGPs = [create_gaussian_process(n, self.pdf) for _ in range(num_gp)]
 
     def compute_color(self, ray):
-        pass
+        color = BLACK
+        
+        hit_data = self.scene.closest_hit(ray)
+        point = hit_data.hit_point
+        
+        if hit_data.has_hit:
+            normal = hit_data.normal
+            object_hit = self.scene.object_list[hit_data.primitive_index]
+
+            sample_integrands = []
+
+            # Removing artifacts
+            index = np.random.choice(len(self.myGPs))
+            selected_gp = self.myGPs[index]
+            sample_directions = selected_gp.samples_pos
+
+            for sample_dir in sample_directions:
+                # Removing artifacts
+                y_rotated_dir = rotate_around_y(np.random.randint(1, 360), sample_dir)
+
+                w_j_rotated = center_around_normal(y_rotated_dir, normal)
+
+                ray2 = Ray(point, w_j_rotated)
+                hit_2_data = self.scene.closest_hit(ray2)
+
+                if hit_2_data.has_hit:
+                    object_hit_2 = self.scene.object_list[hit_2_data.primitive_index]
+                    incidence_radiance = object_hit_2.emission
+                else:
+                    incidence_radiance = self.scene.env_map.getValue(w_j_rotated)
+
+                brdf_value = object_hit.BRDF.get_value(w_j_rotated, Vector3D(0, 0, 0), normal)
+                sample_integrand = incidence_radiance.multiply(brdf_value) * Dot(w_j_rotated, normal)
+                sample_integrands.append(sample_integrand)
+
+            selected_gp.add_sample_val(sample_integrands)
+            bmc_integral_estimate = selected_gp.compute_integral_BMC()
+            color = bmc_integral_estimate
+
+        else:
+            color = self.scene.env_map.getValue(ray.d)
+        
+        return color

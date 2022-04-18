@@ -156,5 +156,5 @@ class GP:
         # ADD YOUR CODE HERE #
         # ################## #
 
-        res = np.sum(self.weights * self.samples_val)
+        res = np.sum(self.samples_val * self.weights)
         return res

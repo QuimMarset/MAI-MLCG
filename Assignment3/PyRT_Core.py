@@ -231,6 +231,28 @@ class Lambertian(BRDF):
             return BLACK
 
 
+# Phong
+class Phong(Lambertian):
+
+    def __init__(self, diffuse_colour, ks, s):
+        super().__init__(diffuse_colour)
+        self.ks = ks
+        self.s = s
+
+    def get_specular_reflection(self, incoming, outcoming, normal):
+        perfect_reflection = normal * 2 * Dot(incoming, normal) - incoming
+        cos_v_r = Dot(outcoming, perfect_reflection)
+        if cos_v_r > 0.0:
+            return self.ks * cos_v_r**self.s
+        else:
+            return BLACK 
+
+    def get_value(self, incoming, outcoming, normal):
+        diffuse_reflection = super().get_value(incoming, Vector3D(0, 0, 0), normal)
+        specular_reflection = self.get_specular_reflection(incoming, outcoming, normal)
+        return diffuse_reflection + specular_reflection
+
+
 # -------------------------------------------------Point Light Source Class
 class PointLight:
     def __init__(self, pos_, intensity_):

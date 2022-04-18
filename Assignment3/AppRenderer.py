@@ -10,14 +10,18 @@ def sphere_test_scene(areaLS=False, use_env_map=False):
     scene_.set_ambient(i_a)
 
     # Create the materials (BRDF)
-    white_diffuse = Lambertian(RGBColor(0.8, 0.8, 0.8))
-    green_diffuse = Lambertian(RGBColor(0.2, 0.8, 0.2))
+    white_material = Lambertian(RGBColor(0.8, 0.8, 0.8))
+    green_material = Lambertian(RGBColor(0.2, 0.8, 0.2))
+
+    # Same materials with specular component
+    # white_material = Phong(RGBColor(0.8, 0.8, 0.8), RGBColor(1.0, 1.0, 1.0), 2)
+    # green_material = Phong(RGBColor(0.2, 0.8, 0.2), RGBColor(1.0, 1.0, 1.0), 2)
 
     # Create the Scene Geometry (3D objects)
     # sphere
     radius = 2
     sphere = Sphere(Vector3D(0.0, 0.0, -5.0), radius)
-    sphere.set_BRDF(white_diffuse)
+    sphere.set_BRDF(white_material)
     scene_.add_object(sphere)
 
     # Finite plane
@@ -27,7 +31,8 @@ def sphere_test_scene(areaLS=False, use_env_map=False):
     right_vector = Vector3D(side, 0.0, 0.0)
     front_vector = Vector3D(0.0, 0.0, -side)
     plane = Parallelogram(plane_point, right_vector, front_vector)
-    plane.set_BRDF(green_diffuse)
+    plane.set_BRDF(green_material)
+
     scene_.add_object(plane)
 
     if not areaLS:  # For Monte Carlo-based integrators
@@ -85,6 +90,13 @@ def cornell_box_scene(dist, side, areaLS=False):
     green_material = Lambertian(RGBColor(0.2, 0.7, 0.2))
     blue_material = Lambertian(RGBColor(0.2, 0.2, 0.7))
     black_material = Lambertian(BLACK)
+
+    # Same materials with specular component
+    # floor_material = Phong(RGBColor(0.8, 0.8, 0.8), RGBColor(1.0, 1.0, 1.0), 20)
+    # red_material = Phong(RGBColor(0.7, 0.2, 0.2), RGBColor(1.0, 1.0, 1.0), 20)
+    # green_material = Phong(RGBColor(0.2, 0.7, 0.2), RGBColor(1.0, 1.0, 1.0), 20)
+    # blue_material = Phong(RGBColor(0.2, 0.2, 0.7), RGBColor(1.0, 1.0, 1.0), 20)
+    # black_material = Phong(BLACK, RGBColor(1.0, 1.0, 1.0), 20)
 
     # Create the Scene Geometry (3D objects)
     # sphere
@@ -166,11 +178,26 @@ DIRECTORY = '.\\out\\'
 
 # -------------------------------------------------Main
 # Create Integrator
-integrator = PhongIntegrator(DIRECTORY + FILENAME)
+
+# Assignment 1.1
+# integrator = LazyIntegrator(DIRECTORY + FILENAME)
+# Assignment 1.2
+# integrator = IntersectionIntegrator(DIRECTORY + FILENAME)
+# Assignment 1.3
+# integrator = NormalIntegrator(DIRECTORY + FILENAME)
+# integrator = DepthIntegrator(DIRECTORY + FILENAME, 5)
+# Assignment 1.4
+# integrator = PhongIntegrator(DIRECTORY + FILENAME)
+
+# Assignment 2.2
+# integrator = CMCIntegrator(40, DIRECTORY + FILENAME)
+
+# Assignment 3.2
+integrator = BayesianMonteCarloIntegrator(40, DIRECTORY + FILENAME, num_gp=3)
 
 # Create the scene
-#scene = sphere_test_scene(areaLS=False, use_env_map=False)
-scene = cornell_box_scene(0.75, 2, areaLS=False)
+scene = sphere_test_scene(areaLS=False, use_env_map=True)
+# scene = cornell_box_scene(0.75, 2, areaLS=False)
 
 # Attach the scene to the integrator
 integrator.add_scene(scene)
