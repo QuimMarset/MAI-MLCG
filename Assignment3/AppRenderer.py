@@ -193,7 +193,7 @@ DIRECTORY = '.\\out\\'
 # integrator = CMCIntegrator(40, DIRECTORY + FILENAME)
 
 # Assignment 3.2
-integrator = BayesianMonteCarloIntegrator(40, DIRECTORY + FILENAME, num_gp=3)
+integrator = BayesianMonteCarloIntegrator(40, DIRECTORY + FILENAME, num_gp=4)
 
 # Create the scene
 scene = sphere_test_scene(areaLS=False, use_env_map=True)

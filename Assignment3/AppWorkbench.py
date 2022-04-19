@@ -114,12 +114,12 @@ def estimate_integral_abs_error_BMC(num_samples, num_estimates, pdf):
     samples_pos, _ = sample_set_hemisphere(num_samples, pdf)
     samples_value = collect_samples(integrand, samples_pos) 
     gaussian_process.add_sample_pos(samples_pos)
-    gaussian_process.add_sample_val([value.r for value in samples_value])
+    gaussian_process.add_sample_val(samples_value)
 
     avg_abs_error = 0
 
     for _ in range(num_estimates):
-        estimate = gaussian_process.compute_integral_BMC()
+        estimate = gaussian_process.compute_integral_BMC().r
         abs_error_estimate = abs(ground_truth - estimate)
         avg_abs_error += abs_error_estimate
 
