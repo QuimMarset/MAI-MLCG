@@ -141,7 +141,7 @@ class GP:
             integrand_values = [self.cov_func.eval(omega_i, sample_dir) for sample_dir in sample_set_z]
 
             for j in range(len(integrand_values)):
-                z_i += (integrand_values[i] * self.p_func.eval(sample_set_z[j])) / probab[j]
+                z_i += (integrand_values[j] * self.p_func.eval(sample_set_z[j])) / probab[j]
             
             z_i /= ns_z
             z_vec[i] = z_i
@@ -158,3 +158,69 @@ class GP:
 
         res = np.sum(self.samples_val * self.weights)
         return res
+
+
+
+class GP_IS:
+
+    def __init__(self, cov_func, noise_=0.01):
+        self.cov_func = cov_func
+        self.noise = noise_
+        self.p_func = None
+        self.samples_pos = None
+        self.samples_val = None
+        self.invQ = None
+        self.z = None
+        self.weights = None
+        self.uniform_pdf = UniformPDF()
+
+
+    def add_sample_pos(self, samples_pos_):
+        self.samples_pos = samples_pos_
+        self.invQ = self.compute_inv_Q()
+
+    def add_sample_val(self, samples_val_):
+        self.samples_val = samples_val_
+
+    def compute_inv_Q(self):
+        n = len(self.samples_pos)
+        Q: ndarray = np.zeros((n, n))
+
+        for (i, sample_i) in enumerate(self.samples_pos):
+            for (j, sample_j) in enumerate(self.samples_pos):
+                Q[i, j] = self.cov_func.eval(sample_i, sample_j)
+
+        # Add a diagonal of a small amount of noise to avoid numerical instability problems
+        Q = Q + np.eye(n, n) * self.noise ** 2
+        return np.linalg.inv(Q)
+
+
+    def compute_z(self):
+        ns_z = 500
+        sample_set_z, probab = sample_set_hemisphere(ns_z, self.uniform_pdf)
+        ns = len(self.samples_pos)
+        z_vec = np.zeros((ns, 3))
+        
+        for i in range(ns):
+            omega_i = self.samples_pos[i]
+
+            for j in range(ns_z):
+                kernel_value = self.cov_func.eval(omega_i, sample_set_z[j])
+                p_value = self.p_func.eval(sample_set_z[j])
+                z_vec[i] += (p_value * kernel_value) / probab[j]
+
+            z_vec[i] /= ns_z
+
+        return z_vec
+
+
+    def compute_integral_BMC(self, hit_brdf, normal):
+        res = BLACK
+
+        self.p_func = IntegrandKnownPart(hit_brdf, normal)
+        self.z = self.compute_z()
+        self.weights = self.invQ @ self.z
+
+        res = np.sum(self.samples_val * self.weights, axis=0)
+        res_color = RGBColor(res[0], res[1], res[2])
+        return res_color
