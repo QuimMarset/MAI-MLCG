@@ -193,16 +193,16 @@ os.makedirs(DIRECTORY, exist_ok=True)
 # integrator = PhongIntegrator(DIRECTORY + FILENAME)
 
 # Assignment 2.2
-#integrator = CMCIntegrator(40, DIRECTORY + FILENAME)
+# integrator = CMCIntegrator(40, DIRECTORY + FILENAME)
 
 # Assignment 3.2
 # integrator = BayesianMonteCarloIntegrator(40, DIRECTORY + FILENAME, num_gp=4)
 
 # Assignment 4.1 (Optional)
-# integrator = CMCISIntegrator(40, DIRECTORY + FILENAME)
+integrator = CMCISIntegrator(40, DIRECTORY + FILENAME)
 
 # Assignment 4.2 (Optional)
-integrator = BayesianMCISIntegrator(40, DIRECTORY + FILENAME, num_gp=4)
+# integrator = BayesianMCISIntegrator(40, DIRECTORY + FILENAME, num_gp=4)
 
 # Create the scene
 scene = sphere_test_scene(areaLS=False, use_env_map=True)

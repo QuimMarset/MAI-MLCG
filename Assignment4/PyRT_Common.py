@@ -291,20 +291,6 @@ class CosineLobe(Function):
         return 2 * pi / (self.exp + 1)
 
 
-class IntegrandKnownPart(Function):
-    def __init__(self, brdf, normal):
-        super().__init__(0)
-        self.normal = normal
-        self.brdf = brdf
-
-    def eval(self, omega_i):
-        color = self.brdf.get_value(omega_i, Vector3D(0, 0, 0), self.normal)
-        return np.array([color.r, color.g, color.b])
-
-    def get_integral(self):
-        return 0
-
-
 # -------------------------------------------------Base class for pdfs oer the hemisphere 2*pi
 class PDF(ABC):
 

@@ -191,8 +191,8 @@ class CMCIntegrator(Integrator):  # Classic Monte Carlo Integrator
         return color
 
 
-def create_gaussian_process(num_samples, pdf, p_func):
-    gaussian_process = GP(SobolevCov(), p_func)
+def create_gaussian_process(gp_class, num_samples, pdf, p_func):
+    gaussian_process = gp_class(SobolevCov(), p_func)
     samples_pos, _ = sample_set_hemisphere(num_samples, pdf)
     gaussian_process.add_sample_pos(samples_pos)
     return gaussian_process
@@ -204,7 +204,7 @@ class BayesianMonteCarloIntegrator(Integrator):
         super().__init__(filename_bmc)
         self.n_samples = n
         self.pdf = UniformPDF()
-        self.myGPs = [create_gaussian_process(n, self.pdf, Constant(1)) for _ in range(num_gp)]
+        self.myGPs = [create_gaussian_process(GP, n, self.pdf, Constant(1)) for _ in range(num_gp)]
 
 
     def compute_color(self, ray):
@@ -260,13 +260,6 @@ class CMCISIntegrator(CMCIntegrator):
         self.pdf = CosinePDF(1)
 
 
-def create_gaussian_process_IS(num_samples, pdf):
-    gaussian_process = GP_IS(SobolevCov())
-    samples_pos, _ = sample_set_hemisphere(num_samples, pdf)
-    gaussian_process.add_sample_pos(samples_pos)
-    return gaussian_process
-
-
 class BayesianMCISIntegrator(Integrator):
 
     def __init__(self, n, filename_, num_gp=5, experiment_name=''):
@@ -274,7 +267,7 @@ class BayesianMCISIntegrator(Integrator):
         super().__init__(filename_bmc)
         self.n_samples = n
         self.pdf = CosinePDF(1)
-        self.myGPs = [create_gaussian_process_IS(n, self.pdf) for _ in range(num_gp)]
+        self.myGPs = [create_gaussian_process(GP_IS, n, self.pdf, CosineLobe(1)) for _ in range(num_gp)]
 
     
     def compute_color(self, ray):
@@ -310,7 +303,7 @@ class BayesianMCISIntegrator(Integrator):
                 incident_radiance_values[i] = [incident_radiance.r, incident_radiance.g, incident_radiance.b]
 
             selected_gp.add_sample_val(incident_radiance_values)
-            bmc_integral_estimate = selected_gp.compute_integral_BMC(object_hit.BRDF, normal)
+            bmc_integral_estimate = selected_gp.compute_integral_BMC(object_hit.BRDF.kd)
             color = bmc_integral_estimate
 
         else:
