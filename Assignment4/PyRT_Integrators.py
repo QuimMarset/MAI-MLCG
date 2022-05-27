@@ -181,9 +181,9 @@ class CMCIntegrator(Integrator):  # Classic Monte Carlo Integrator
 
                 brdf_value = object_hit.BRDF.get_value(w_j_rotated, Vector3D(0, 0, 0), normal)
                 integrand_sample = incident_radiance.multiply(brdf_value)
-                illum_integral_estimate += integrand_sample/prob
+                illum_integral_estimate += integrand_sample / prob
 
-            color = illum_integral_estimate/self.n_samples
+            color = illum_integral_estimate / self.n_samples
 
         else:
             color = self.scene.env_map.getValue(ray.d)
@@ -191,8 +191,8 @@ class CMCIntegrator(Integrator):  # Classic Monte Carlo Integrator
         return color
 
 
-def create_gaussian_process(gp_class, num_samples, pdf, p_func):
-    gaussian_process = gp_class(SobolevCov(), p_func)
+def create_gaussian_process(num_samples, pdf, p_func):
+    gaussian_process = GP(SobolevCov(), p_func)
     samples_pos, _ = sample_set_hemisphere(num_samples, pdf)
     gaussian_process.add_sample_pos(samples_pos)
     return gaussian_process
@@ -204,7 +204,7 @@ class BayesianMonteCarloIntegrator(Integrator):
         super().__init__(filename_bmc)
         self.n_samples = n
         self.pdf = UniformPDF()
-        self.myGPs = [create_gaussian_process(GP, n, self.pdf, Constant(1)) for _ in range(num_gp)]
+        self.myGPs = [create_gaussian_process(n, self.pdf, Constant(1)) for _ in range(num_gp)]
 
 
     def compute_color(self, ray):
@@ -267,7 +267,7 @@ class BayesianMCISIntegrator(Integrator):
         super().__init__(filename_bmc)
         self.n_samples = n
         self.pdf = CosinePDF(1)
-        self.myGPs = [create_gaussian_process(GP_IS, n, self.pdf, CosineLobe(1)) for _ in range(num_gp)]
+        self.myGPs = [create_gaussian_process(n, self.pdf, CosineLobe(1)) for _ in range(num_gp)]
 
     
     def compute_color(self, ray):
@@ -284,7 +284,7 @@ class BayesianMCISIntegrator(Integrator):
             selected_gp = self.myGPs[index]
             sample_directions = selected_gp.samples_pos
 
-            incident_radiance_values = np.zeros((self.n_samples, 3))
+            incident_radiance_values = []
 
             for (i, sample_dir) in enumerate(sample_directions):
                 # Removing artifacts
@@ -300,11 +300,10 @@ class BayesianMCISIntegrator(Integrator):
                 else:
                     incident_radiance = self.scene.env_map.getValue(w_j_rotated)
 
-                incident_radiance_values[i] = [incident_radiance.r, incident_radiance.g, incident_radiance.b]
+                incident_radiance_values.append(incident_radiance)
 
             selected_gp.add_sample_val(incident_radiance_values)
-            bmc_integral_estimate = selected_gp.compute_integral_BMC(object_hit.BRDF.kd)
-            color = bmc_integral_estimate
+            color = object_hit.BRDF.kd * selected_gp.compute_integral_BMC()
 
         else:
             color = self.scene.env_map.getValue(ray.d)

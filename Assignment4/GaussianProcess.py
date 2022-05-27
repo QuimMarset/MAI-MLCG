@@ -97,7 +97,6 @@ class GP:
         # ################## #
         # ADD YOUR CODE HERE #
         # ################## #
-
         for (i, sample_i) in enumerate(self.samples_pos):
             for (j, sample_j) in enumerate(self.samples_pos):
                 Q[i, j] = self.cov_func.eval(sample_i, sample_j)
@@ -121,7 +120,7 @@ class GP:
         ns_z = 50000  # number of samples used to estimate z_i
 
         # STEP 2: Generate a samples set for the MC estimate
-        sample_set_z, probab = sample_set_hemisphere(ns_z, self.uniform_pdf)
+        sample_set_z, probs = sample_set_hemisphere(ns_z, self.uniform_pdf)
         ns = len(self.samples_pos)
         z_vec = np.zeros(ns)
 
@@ -135,13 +134,9 @@ class GP:
             # ################## #
             # ADD YOUR CODE HERE #
             # ################## #
-
             z_i = 0
-
-            integrand_values = [self.cov_func.eval(omega_i, sample_dir) for sample_dir in sample_set_z]
-
-            for j in range(len(integrand_values)):
-                z_i += (integrand_values[j] * self.p_func.eval(sample_set_z[j])) / probab[j]
+            for (sample_dir_z, prob) in zip(sample_set_z, probs):
+                z_i += (self.cov_func.eval(omega_i, sample_dir_z) * self.p_func.eval(sample_dir_z)) / prob
             
             z_i /= ns_z
             z_vec[i] = z_i
@@ -151,18 +146,8 @@ class GP:
     # Method in charge of computing the BMC integral estimate (assuming the the prior mean function has value 0)
     def compute_integral_BMC(self):
         res = BLACK
-
         # ################## #
         # ADD YOUR CODE HERE #
         # ################## #
-
         res = np.sum(self.samples_val * self.weights)
         return res
-
-
-class GP_IS(GP):
-
-    def compute_integral_BMC(self, kd):
-        weights_ = np.array([kd.r, kd.g, kd.b]) * np.expand_dims(self.weights, axis=1)
-        res = np.sum(self.samples_val * weights_, axis=0)
-        return RGBColor(res[0], res[1], res[2])
