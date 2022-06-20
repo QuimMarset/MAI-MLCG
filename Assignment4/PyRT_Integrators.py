@@ -242,8 +242,7 @@ class BayesianMonteCarloIntegrator(Integrator):
                 sample_integrands.append(sample_integrand)
 
             selected_gp.add_sample_val(sample_integrands)
-            bmc_integral_estimate = selected_gp.compute_integral_BMC()
-            color = bmc_integral_estimate
+            color = selected_gp.compute_integral_BMC()
 
         else:
             color = self.scene.env_map.getValue(ray.d)
@@ -303,7 +302,8 @@ class BayesianMCISIntegrator(Integrator):
                 incident_radiance_values.append(incident_radiance)
 
             selected_gp.add_sample_val(incident_radiance_values)
-            color = object_hit.BRDF.kd * selected_gp.compute_integral_BMC()
+
+            color = object_hit.BRDF.kd.multiply(selected_gp.compute_integral_BMC())
 
         else:
             color = self.scene.env_map.getValue(ray.d)
